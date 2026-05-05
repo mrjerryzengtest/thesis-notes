@@ -55,10 +55,18 @@
 
 藉由不同攻擊類型在熵值空間中的分佈差異，達到**攻擊檢測 + 攻擊分類**的雙重目標。
 
+### 2026-05-06 進度
+
+| # | 事項 | 狀態 |
+|---|------|:----:|
+| 1 | 教授回信，約線上討論 | ✅ |
+| 2 | 整理 **教授討論準備資料**（7 大議題 + 提問清單 + 視覺素材） | ✅ |
+| 3 | 撰寫 SDN 實驗環境搭建指南（Mininet + ONOS/Ryu） | ✅ |
+
 ### 下一步
 
-1. ✉️ ~~寄出郵件給教授，取得題目方向回饋~~ → **已寄出（2026-05-01），等待回覆**
-2. 📖 深入研讀 Elastic Sketch 的 technical report
+1. 🎯 與教授線上討論（使用 notes/05-professor-discussion-prep.md）
+2. 📖 根據教授回饋調整研究方向
 3. 🔍 搜尋 entropy-based DDoS detection in SDN 相關文獻
 4. 🖥️ 搭建 Mininet + ONOS/Ryu SDN 實驗環境
 
@@ -69,9 +77,12 @@
 ```
 thesis-notes/
 ├── README.md                          ← 本檔案
+├── docs/
+│   └── sdn-lab-setup-guide.md         ← SDN 實驗環境搭建指南
 └── notes/
     ├── 01-resource-summary.md         ← 參考資料詳細整理
     ├── 02-thesis-direction.md         ← 論文方向分析 + 4 個題目方案
     ├── 03-email-to-professor.md       ← 給教授的郵件草稿
-    └── 04-key-insights.md             ← 8 個核心技術洞察
+    ├── 04-key-insights.md             ← 8 個核心技術洞察
+    └── 05-professor-discussion-prep.md ← 教授線上討論準備資料
 ```
