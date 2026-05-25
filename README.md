@@ -63,12 +63,20 @@
 | 2 | 整理 **教授討論準備資料**（7 大議題 + 提問清單 + 視覺素材） | ✅ |
 | 3 | 撰寫 SDN 實驗環境搭建指南（Mininet + ONOS/Ryu） | ✅ |
 
+### 2026-05-25 進度
+
+| # | 事項 | 狀態 |
+|---|------|:----:|
+| 1 | 搜尋 entropy-based DDoS detection in SDN 相關文獻（17 篇整理） | ✅ |
+| 2 | 擬定出差返國後給教授的追蹤信草稿 | ✅ |
+
 ### 下一步
 
 1. 🎯 與教授線上討論（使用 notes/05-professor-discussion-prep.md）
-2. 📖 根據教授回饋調整研究方向
-3. 🔍 搜尋 entropy-based DDoS detection in SDN 相關文獻
-4. 🖥️ 搭建 Mininet + ONOS/Ryu SDN 實驗環境
+2. 📧 寄出追蹤信給教授（notes/07-follow-up-email-after-trip.md）
+3. 📖 根據教授回饋調整研究方向
+4. 📄 深入閱讀文獻搜尋結果中標記「待研讀」的論文
+5. 🖥️ 搭建 Mininet + ONOS/Ryu SDN 實驗環境
 
 ---
 
@@ -84,5 +92,7 @@ thesis-notes/
     ├── 02-thesis-direction.md         ← 論文方向分析 + 4 個題目方案
     ├── 03-email-to-professor.md       ← 給教授的郵件草稿
     ├── 04-key-insights.md             ← 8 個核心技術洞察
-    └── 05-professor-discussion-prep.md ← 教授線上討論準備資料
+    ├── 05-professor-discussion-prep.md ← 教授線上討論準備資料
+    ├── 06-literature-search-entropy-ddos.md ← Entropy DDoS 文獻搜尋整理
+    └── 07-follow-up-email-after-trip.md ← 出差返國追蹤信草稿
 ```
