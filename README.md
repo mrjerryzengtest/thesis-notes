@@ -70,6 +70,13 @@
 | 1 | 搜尋 entropy-based DDoS detection in SDN 相關文獻（17 篇整理） | ✅ |
 | 2 | 擬定出差返國後給教授的追蹤信草稿 | ✅ |
 
+### 2026-05-31 進度
+
+| # | 事項 | 狀態 |
+|---|------|:----:|
+| 1 | 整理 Meeting 快速參考 — 論文 vs. Elastic Sketch 差異對照 + 三論據 | ✅ |
+| 2 | 下午與教授線上討論 | 🔜 |
+
 ### 下一步
 
 1. 🎯 與教授線上討論（使用 notes/05-professor-discussion-prep.md）
@@ -94,5 +101,6 @@ thesis-notes/
     ├── 04-key-insights.md             ← 8 個核心技術洞察
     ├── 05-professor-discussion-prep.md ← 教授線上討論準備資料
     ├── 06-literature-search-entropy-ddos.md ← Entropy DDoS 文獻搜尋整理
-    └── 07-follow-up-email-after-trip.md ← 出差返國追蹤信草稿
+    ├── 07-follow-up-email-after-trip.md ← 出差返國追蹤信草稿
+    └── 08-meeting-cheat-sheet.md        ← Meeting 快速參考（論文 vs. Elastic Sketch）
 ```
