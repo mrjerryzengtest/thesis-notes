@@ -75,15 +75,16 @@
 | # | 事項 | 狀態 |
 |---|------|:----:|
 | 1 | 整理 Meeting 快速參考 — 論文 vs. Elastic Sketch 差異對照 + 三論據 | ✅ |
-| 2 | 下午與教授線上討論 | 🔜 |
+| 2 | 與教授線上討論完成 — 方向調整：聚焦通用 Sketch 做攻擊識別 | ✅ |
+| 3 | 整理教授 5 篇新指定文獻 + 新方向架構（notes/09-*.md） | ✅ |
 
 ### 下一步
 
-1. 🎯 與教授線上討論（使用 notes/05-professor-discussion-prep.md）
-2. 📧 寄出追蹤信給教授（notes/07-follow-up-email-after-trip.md）
-3. 📖 根據教授回饋調整研究方向
-4. 📄 深入閱讀文獻搜尋結果中標記「待研讀」的論文
-5. 🖥️ 搭建 Mininet + ONOS/Ryu SDN 實驗環境
+1. 🎯 ~~與教授線上討論~~ → ✅ 已完成（2026-05-31）
+2. 📖 研讀教授新指定的 5 篇文獻
+3. 🔍 調查更多通用網路測量 Sketch（UnivMon、NitroSketch、SketchLearn 等）
+4. 🖥️ 設計「不同攻擊 → 不同 Sketch 選擇策略」的方法框架
+5. 🧪 確認實驗平台：P4 BMv2 or Mininet + OVS？
 
 ---
 
@@ -102,5 +103,6 @@ thesis-notes/
     ├── 05-professor-discussion-prep.md ← 教授線上討論準備資料
     ├── 06-literature-search-entropy-ddos.md ← Entropy DDoS 文獻搜尋整理
     ├── 07-follow-up-email-after-trip.md ← 出差返國追蹤信草稿
-    └── 08-meeting-cheat-sheet.md        ← Meeting 快速參考（論文 vs. Elastic Sketch）
+    ├── 08-meeting-cheat-sheet.md        ← Meeting 快速參考（論文 vs. Elastic Sketch）
+    └── 09-meeting-feedback-new-direction.md ← 教授 Meeting 結論 + 新方向 + 5 篇新文獻
 ```
