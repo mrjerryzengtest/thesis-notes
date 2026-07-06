@@ -59,13 +59,12 @@
 
 ### 方向演進
 
-| | 原始方向（5/1） | 調整後方向（5/31） |
-|---|--------------|-----------------|
-| 核心問題 | 如何優化熵值估計精度？ | 如何用通用網路測量 Sketch 區分不同攻擊？ |
-| 技術手段 | 改良 Elastic Sketch 的 entropy 模組 | 調查並組合多種 Sketch 做攻擊特徵提取 |
-| 貢獻定位 | Debiasing + 多維度熵值向量 | Sketch-based 攻擊識別框架 + SDN 部署 |
-| 主要 baseline | Elastic Sketch（單一） | CM Sketch、Elastic、UnivMon、UCL-Sketch 等 |
-| 部署平台 | Mininet 模擬 | P4 交換機（BMv2 軟體模擬 or Tofino 硬體） |
+| | 調整後方向（5/31） |
+|---|-----------------|
+| 核心問題 | 如何用通用網路測量 Sketch 區分不同攻擊？ |
+| 技術手段 | 調查並組合多種 Sketch 做攻擊特徵提取 |
+| 主要 baseline | CM Sketch、Elastic、UnivMon、UCL-Sketch 等 |
+| 部署平台 | P4 交換機（BMv2 軟體模擬 or Tofino 硬體） |
 
 ### 調整緣由
 
