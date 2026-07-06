@@ -88,6 +88,7 @@
 | 4 | 建立 notes/10-meeting-prep-july-2026.md 會議準備文件 | ✅ |
 | 5 | 撰寫 11 篇文獻詳細技術整理（notes/11-*.md，~19K 字） | ✅ |
 | 6 | 產生給教授的正式討論報告（notes/12-*.md，含文獻回顧 + 方向 + 議題） | ✅ |
+| 7 | 整理文獻 QA Cheat Sheet（notes/13-*.md，Q&A 格式快速備忘） | ✅ |
 
 ### 下一步
 
@@ -120,4 +121,5 @@ thesis-notes/
     └── 10-meeting-prep-july-2026.md     ← 2026-07-06 Meeting 準備資料（文獻總覽 + 議題）
     └── 11-detailed-literature-review.md ← 11 篇文獻詳細技術整理（完整版，~19K 字）
     └── 12-professor-report-july-2026.md ← 2026-07-06 教授討論報告（正式版：文獻回顧 + 方向 + 議題）
+    └── 13-literature-qa-cheatsheet.md  ← 2026-07-06 文獻 QA Cheat Sheet（五篇常見問題 + 簡答）
 ```
