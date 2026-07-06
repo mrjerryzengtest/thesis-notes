@@ -73,14 +73,14 @@
 
 ### 預定論文題目
 
-> **基於通用網路測量 Sketch 之 SDN 攻擊偵測與分類**
->
-> *Network-Wide Measurement Sketch-Based Attack Detection and Classification in SDN*
-
-備選版本：
 > **SDN 環境下基於多 Sketch 協同之網路攻擊識別方法**
 >
 > *Multi-Sketch Cooperative Framework for Network Attack Identification in SDN*
+
+備選版本：
+> **基於通用網路測量 Sketch 之 SDN 攻擊偵測與分類**
+>
+> *Network-Wide Measurement Sketch-Based Attack Detection and Classification in SDN*
 
 ---
 
