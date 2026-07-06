@@ -78,13 +78,23 @@
 | 2 | 與教授線上討論完成 — 方向調整：聚焦通用 Sketch 做攻擊識別 | ✅ |
 | 3 | 整理教授 5 篇新指定文獻 + 新方向架構（notes/09-*.md） | ✅ |
 
+### 2026-07-06 進度
+
+| # | 事項 | 狀態 |
+|---|------|:----:|
+| 1 | 回顧論文進度 + 整理 Meeting 準備資料 | ✅ |
+| 2 | 整理教授指定全部 11 篇文獻總覽（第一批 6 篇 + 第二批 5 篇） | ✅ |
+| 3 | 撰寫 Meeting 討論議題清單（5 大議題） | ✅ |
+| 4 | 建立 notes/10-meeting-prep-july-2026.md 會議準備文件 | ✅ |
+
 ### 下一步
 
 1. 🎯 ~~與教授線上討論~~ → ✅ 已完成（2026-05-31）
-2. 📖 研讀教授新指定的 5 篇文獻
-3. 🔍 調查更多通用網路測量 Sketch（UnivMon、NitroSketch、SketchLearn 等）
-4. 🖥️ 設計「不同攻擊 → 不同 Sketch 選擇策略」的方法框架
-5. 🧪 確認實驗平台：P4 BMv2 or Mininet + OVS？
+2. 🎯 ~~今日與教授討論~~ → 今日進行中
+3. 📖 研讀教授新指定的 5 篇文獻
+4. 🔍 調查更多通用網路測量 Sketch（UnivMon、NitroSketch、SketchLearn 等）
+5. 🖥️ 設計「不同攻擊 → 不同 Sketch 選擇策略」的方法框架
+6. 🧪 確認實驗平台：P4 BMv2 or Mininet + OVS？
 
 ---
 
@@ -105,4 +115,5 @@ thesis-notes/
     ├── 07-follow-up-email-after-trip.md ← 出差返國追蹤信草稿
     ├── 08-meeting-cheat-sheet.md        ← Meeting 快速參考（論文 vs. Elastic Sketch）
     └── 09-meeting-feedback-new-direction.md ← 教授 Meeting 結論 + 新方向 + 5 篇新文獻
+    └── 10-meeting-prep-july-2026.md     ← 2026-07-06 Meeting 準備資料（文獻總覽 + 議題）
 ```
