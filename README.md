@@ -86,6 +86,7 @@
 | 2 | 整理教授指定全部 11 篇文獻總覽（第一批 6 篇 + 第二批 5 篇） | ✅ |
 | 3 | 撰寫 Meeting 討論議題清單（5 大議題） | ✅ |
 | 4 | 建立 notes/10-meeting-prep-july-2026.md 會議準備文件 | ✅ |
+| 5 | 撰寫 11 篇文獻詳細技術整理（notes/11-*.md，~19K 字） | ✅ |
 
 ### 下一步
 
@@ -116,4 +117,5 @@ thesis-notes/
     ├── 08-meeting-cheat-sheet.md        ← Meeting 快速參考（論文 vs. Elastic Sketch）
     └── 09-meeting-feedback-new-direction.md ← 教授 Meeting 結論 + 新方向 + 5 篇新文獻
     └── 10-meeting-prep-july-2026.md     ← 2026-07-06 Meeting 準備資料（文獻總覽 + 議題）
+    └── 11-detailed-literature-review.md ← 11 篇文獻詳細技術整理（完整版，~19K 字）
 ```
