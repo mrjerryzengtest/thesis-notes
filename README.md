@@ -89,15 +89,16 @@
 | 5 | 撰寫 11 篇文獻詳細技術整理（notes/11-*.md，~19K 字） | ✅ |
 | 6 | 產生給教授的正式討論報告（notes/12-*.md，含文獻回顧 + 方向 + 議題） | ✅ |
 | 7 | 整理文獻 QA Cheat Sheet（notes/13-*.md，Q&A 格式快速備忘） | ✅ |
+| 8 | 🎯 與教授線上討論完成 — 方向確認、題目暫定、工作分配 | ✅ |
+| 9 | 整理會議結論（notes/14-meeting-feedback-july-2026.md） | ✅ |
 
 ### 下一步
 
-1. 🎯 ~~與教授線上討論~~ → ✅ 已完成（2026-05-31）
-2. 🎯 ~~今日與教授討論~~ → 今日進行中
-3. 📖 研讀教授新指定的 5 篇文獻
-4. 🔍 調查更多通用網路測量 Sketch（UnivMon、NitroSketch、SketchLearn 等）
-5. 🖥️ 設計「不同攻擊 → 不同 Sketch 選擇策略」的方法框架
-6. 🧪 確認實驗平台：P4 BMv2 or Mininet + OVS？
+1. 🎯 ~~與教授線上討論~~ → ✅ 已完成（2026-07-06）
+2. 🔍 **搜尋 entropy ↔ cybersecurity 關聯文獻**（Jerry 負責）
+3. 📖 等待教授提供 sketch-entropy 文獻
+4. 🔗 收到教授文獻後整合兩批文獻，建立完整邏輯鏈
+5. 📝 撰寫論文 Chapter 2（文獻回顧）
 
 ---
 
@@ -121,5 +122,7 @@ thesis-notes/
     └── 10-meeting-prep-july-2026.md     ← 2026-07-06 Meeting 準備資料（文獻總覽 + 議題）
     └── 11-detailed-literature-review.md ← 11 篇文獻詳細技術整理（完整版，~19K 字）
     └── 12-professor-report-july-2026.md ← 2026-07-06 教授討論報告（正式版：文獻回顧 + 方向 + 議題）
-    └── 13-literature-qa-cheatsheet.md  ← 2026-07-06 文獻 QA Cheat Sheet（五篇常見問題 + 簡答）
+    ├── 13-literature-qa-cheatsheet.md  ← 2026-07-06 文獻 QA Cheat Sheet（五篇常見問題 + 簡答）
+    ├── 14-meeting-feedback-july-2026.md  ← 2026-07-06 教授會議結論 + 工作分配
+    └── 15-entropy-cybersecurity-literature.md ← Entropy ↔ Cybersecurity 關聯文獻搜尋
 ```
