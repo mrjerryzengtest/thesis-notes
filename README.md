@@ -92,13 +92,25 @@
 | 8 | 🎯 與教授線上討論完成 — 方向確認、題目暫定、工作分配 | ✅ |
 | 9 | 整理會議結論（notes/14-meeting-feedback-july-2026.md） | ✅ |
 
+### 2026-08-03 進度
+
+| # | 事項 | 狀態 |
+|---|------|:----:|
+| 1 | 撰寫第一章緒論草稿（draft/chapter1-introduction.md） | ✅ |
+| 2 | 撰寫第二章文獻探討草稿（draft/chapter2-literature-review.md） | ✅ |
+| 3 | 撰寫第三章方法論草稿（draft/chapter3-methodology.md） | ✅ |
+| 4 | 規劃第四章實驗設計（notes/16-experiment-design.md） | ✅ |
+
 ### 下一步
 
 1. 🎯 ~~與教授線上討論~~ → ✅ 已完成（2026-07-06）
-2. 🔍 **搜尋 entropy ↔ cybersecurity 關聯文獻**（Jerry 負責）
+2. 🔍 ~~搜尋 entropy ↔ cybersecurity 關聯文獻~~ → ✅ 已完成（notes/15）
 3. 📖 等待教授提供 sketch-entropy 文獻
 4. 🔗 收到教授文獻後整合兩批文獻，建立完整邏輯鏈
-5. 📝 撰寫論文 Chapter 2（文獻回顧）
+5. 📝 ~~撰寫論文 Chapter 2（文獻回顧）~~ → ✅ 草稿完成（draft/）
+6. 📝 ~~撰寫論文 Chapter 1 + 3 + 實驗設計~~ → ✅ 草稿完成（2026-08-03）
+7. 🔬 開始實作階段：搭建 Mininet 環境 + Elastic Sketch 原型
+8. 👨‍🏫 與教授討論前三章草稿 + 實驗設計
 
 ---
 
@@ -124,5 +136,10 @@ thesis-notes/
     └── 12-professor-report-july-2026.md ← 2026-07-06 教授討論報告（正式版：文獻回顧 + 方向 + 議題）
     ├── 13-literature-qa-cheatsheet.md  ← 2026-07-06 文獻 QA Cheat Sheet（五篇常見問題 + 簡答）
     ├── 14-meeting-feedback-july-2026.md  ← 2026-07-06 教授會議結論 + 工作分配
-    └── 15-entropy-cybersecurity-literature.md ← Entropy ↔ Cybersecurity 關聯文獻搜尋
+    ├── 15-entropy-cybersecurity-literature.md ← Entropy ↔ Cybersecurity 關聯文獻搜尋
+    └── 16-experiment-design.md            ← 實驗設計規劃（環境、資料集、指標、對照組）
+├── draft/
+│   ├── chapter1-introduction.md          ← 第一章緒論草稿
+│   ├── chapter2-literature-review.md     ← 第二章文獻探討草稿
+│   └── chapter3-methodology.md           ← 第三章方法論草稿
 ```
