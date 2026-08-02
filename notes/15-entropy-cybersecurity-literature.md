@@ -1,161 +1,159 @@
-# 15 — Entropy ↔ Cybersecurity 關聯文獻搜尋
+# 15 — 為什麼 Entropy 能抓網路攻擊？（白話版）
 
-> 搜尋日期：2026-07-14
-> 目的：建立 entropy 作為網路安全指標的理論基礎，證明「為什麼 entropy 能偵測攻擊」
-
----
-
-## 一、搜尋策略
-
-| 層次 | 搜尋方向 | 關鍵詞 |
-|------|---------|--------|
-| 理論基礎 | 資訊理論 → 網路流量分析 | Shannon entropy network traffic |
-| 經典實證 | entropy 用於異常偵測的開創性論文 | entropy anomaly detection seminal |
-| SDN 應用 | entropy 在 SDN 中的 DDoS 偵測 | entropy DDoS detection SDN |
-| 綜合回顧 | survey / review 論文 | entropy DDoS SDN comprehensive review |
+> 給教授看的正式版在 `notes/12`，這份是給你自己看懂用的。
 
 ---
 
-## 二、經典奠基論文（Foundational）
+## 0. 先說結論：Entropy 為什麼能抓攻擊？
 
-### 🔑 最關鍵的 5 篇
-
-#### 1. Feinstein et al. (2003)
-> **"Statistical Approaches to DDoS Attack Detection and Response"**
-> *DARPA Information Survivability Conference and Exposition*
-
-- **核心貢獻**：最早將 entropy 用於 DDoS 偵測的文獻之一。計算 source IP 的 entropy，當 DDoS 發生時大量封包來自少數 IP → entropy 驟降。
-- **熵值角色**：檢測指標 — entropy 下降 = 攻擊訊號
-- **URL**：https://ieeexplore.ieee.org/abstract/document/1194894
-
-#### 2. Lakhina, Crovella & Diot (2004)
-> **"Structural Analysis of Network Traffic Flows"**
-> *SIGMETRICS Performance Evaluation Review*
-
-- **核心貢獻**：提出用 entropy 分析網路流量結構。證明不同 traffic feature（srcIP, dstIP, srcPort, dstPort）的 entropy 能捕捉 OD flow 的潛在結構，異常流量會破壞這個結構。
-- **熵值角色**：結構描述子 — entropy 反映流量分佈的「形狀」
-- **URL**：https://dl.acm.org/doi/10.1145/1005686.1005697
-
-#### 3. Lakhina, Crovella & Diot (2005)
-> **"Diagnosing Network-Wide Traffic Anomalies"**
-> *SIGCOMM 2005*
-
-- **核心貢獻**：將 entropy-based anomaly detection 擴展到全網路規模。提出用 PCA 對多維 entropy 時間序列做降維，分離正常與異常子空間，實現 network-wide 異常診斷。
-- **熵值角色**：多維特徵向量 — 每個 OD flow 的 entropy 變化在 PCA 空間中形成異常軌跡
-- **引用數**：~1,400+（SIGCOMM 經典）
-- **URL**：https://dl.acm.org/doi/10.1145/1080091.1080133
-
-#### 4. Wagner & Plattner (2005)
-> **"Entropy Based Worm and Anomaly Detection in Fast IP Networks"**
-> *IEEE WETICE 2005*
-
-- **核心貢獻**：用 destination port 的 entropy 偵測蠕蟲擴散。蠕蟲掃描會使 dstPort entropy 異常升高（大量隨機 port），而 DDoS 則使 dstIP entropy 下降（集中在少數 victim）。
-- **熵值角色**：攻擊分類器 — 不同攻擊類型產生不同 entropy 變化模式
-- **URL**：https://ieeexplore.ieee.org/abstract/document/1524324
-
-#### 5. Nychis et al. (2008)
-> **"An Empirical Evaluation of Entropy-based Traffic Anomaly Detection"**
-> *ACM IMC 2008*
-
-- **核心貢獻**：對 entropy-based anomaly detection 做全面的經驗評估。發現：(1) entropy 在大多數異常類型中表現良好；(2) 但某些攻擊只改變流量體積而不改變分佈形狀，entropy 可能漏報；(3) 需要結合多個 feature 的 entropy。
-- **熵值角色**：盲點分析 — entropy 不是萬能的，需要多維度互補
-- **URL**：https://dl.acm.org/doi/10.1145/1452520.1452550
-
----
-
-## 三、SDN 特定文獻
-
-### 6. Mousavi & St-Hilaire (2015)
-> **"Early Detection of DDoS Attacks Against SDN Controllers"**
-> *IEEE ICC 2015*
-
-- **核心貢獻**：將 entropy-based 方法移植到 SDN。在 OpenFlow switch 上計算 dstIP entropy 的 sliding window，當 entropy 低於動態閾值時觸發警報。
-- **熵值角色**：SDN 控制層保護
-- **URL**：https://ieeexplore.ieee.org/abstract/document/7249107
-
-### 7. Giotis, Argyropoulos, Androulidakis, Kalogeras & Maglaris (2014)
-> **"Combining OpenFlow and sFlow for an Effective and Scalable Anomaly Detection and Mitigation Mechanism on SDN Environments"**
-> *Computer Networks*
-
-- **核心貢獻**：結合 OpenFlow 統計 + sFlow 做 entropy-based anomaly detection，在 SDN 環境中實現 scalable 的攻擊偵測與緩解。
-- **URL**：https://www.sciencedirect.com/science/article/pii/S1389128614000176
-
-### 8. Kalkan, Zeadally & Al-Bayatti (2018)
-> **"A Novel Renyi Entropy-Based DDoS Detection and Mitigation Scheme for SDN"**
-> *IEEE Systems Journal*
-
-- **核心貢獻**：用 Rényi entropy（Shannon entropy 的廣義化，參數 α 可調）取代 Shannon entropy，提高對不同攻擊模式的適應性。
-- **URL**：https://ieeexplore.ieee.org/abstract/document/8401538
-
----
-
-## 四、Survey / Review 論文（最佳出發點）
-
-### 9. "Entropy Based DDoS Detection and Mitigation Methods in SDN: A Comprehensive Review"
-> 2023–2024 年發表，系統性回顧 SDN 中所有 entropy-based DDoS 偵測方法
-
-- **價值**：提供完整的 method taxonomy（Shannon / Rényi / Tsallis / Generalized entropy 比較表）
-- **URL**：搜尋 Google Scholar `"Entropy Based DDoS Detection and Mitigation Methods in SDN"`
-
-### 10. Fernandes et al. (2019)
-> **"A Comprehensive Survey on Network Anomaly Detection"**
-> *Telecommunication Systems*
-
-- **價值**：將 entropy-based 方法放在整體 network anomaly detection 框架中比較
-- **URL**：https://link.springer.com/article/10.1007/s11235-018-0475-8
-
----
-
-## 五、Entropy ↔ Cybersecurity 邏輯鏈
-
-用國中生也能懂的比喻說明：
-
-### 類比：教室裡的噪音
+用教室比喻：
 
 ```
-正常上課 → 每個人小聲討論 → 聲音來源分散 → Entropy 高（混亂但正常）
-老師宣布考試 → 全班同時驚呼 → 聲音集中在一個事件 → Entropy 驟降（異常！）
-火災警報 → 所有人往門口跑 → 動作集中在一個方向 → Entropy 驟降（異常！）
-有人鬧事 → 某個人突然大吼 → 音量集中在一個人 → Entropy 驟降（異常！）
+正常上課 → 每個人小聲聊天 → 聲音來源很分散 → Entropy 高（亂，但正常）
+老師突襲考試 → 全班同時哀號 → 聲音集中在同一件事 → Entropy 暴跌（異常！）
+火災警報響 → 所有人往門口擠 → 動作集中在同一方向 → Entropy 暴跌（異常！）
 ```
 
-### 對應到網路：
+網路也一樣：
+- **正常時**：流量來自四面八方、去四面八方 → entropy 穩定在一個範圍
+- **被 DDoS**：所有流量打同一個目標 → dstIP entropy 暴跌
+- **被掃 port**：一個 IP 到處敲門 → dstPort entropy 暴漲
 
-| 教室情境 | 網路情境 | Entropy 變化 |
-|---------|---------|:-----------:|
-| 正常討論 | 正常流量（IP 分散） | 高 entropy |
-| 全班驚呼 | DDoS 攻擊（集中打同一 target） | dstIP entropy ↓ |
-| 火災逃跑 | Port scan（大量隨機 port） | dstPort entropy ↑ |
-| 有人鬧事 | Botnet C&C（少數 IP 大量流量） | srcIP entropy ↓ |
+**一句話：攻擊會改變流量分佈的「亂度」，entropy 就是測量這個亂度的尺。**
 
-### 邏輯鏈（可用於論文 Chapter 2）：
+---
+
+## 1. 這五篇是地基（經典中的經典）
+
+### 論文 1：Feinstein (2003) — 最早用 entropy 抓 DDoS 的人
+
+> 就像第一個發現「教室突然安靜 = 要出事了」的人
+
+**做什麼**：算 source IP 的 entropy。正常時每個人都在講話（IP 分散），entropy 高。DDoS 發生時一堆假 IP 打同一個目標，來源突然變得很單一 → entropy 驟降。
+
+**對你論文的重要性**：⭐⭐⭐ — 證明「entropy 降 = 攻擊」這個概念是可行的，你是站在巨人的肩膀上。
+
+
+### 論文 2：Lakhina (2004) — entropy 不只一個，要看好幾個
+
+> 不只聽「誰在講話」，還要聽「在跟誰講話」、「從哪個門進來」
+
+**做什麼**：第一次證明不同維度的 entropy 各有用途：
+- srcIP entropy → 看出誰在發動攻擊
+- dstIP entropy → 看出誰在被攻擊  
+- srcPort entropy → 看出攻擊者用什麼手法
+- dstPort entropy → 看出目標是哪種服務
+
+**對你論文的重要性**：⭐⭐⭐⭐⭐ — 這是你論文「多維度熵值」的直接祖宗。
+
+
+### 論文 3：Lakhina (2005) — SIGCOMM 神級論文（引用 1400+）
+
+> 同時看好幾個 entropy 指標，像看股票大盤一樣，正常波動沒事，異常一起飆就知道出事了
+
+**做什麼**：把多個 entropy 數值同時監控，用 PCA（一種數學技巧）自動分開「正常波動」和「真正異常」。不用人盯著看，機器自己判斷。
+
+**對你論文的重要性**：⭐⭐⭐⭐⭐ — 展示「多維度 + 自動判斷」可行。你論文要做的 attack classification 就是這個的延伸。
+
+
+### 論文 4：Wagner (2005) — 不同攻擊，entropy 變化不一樣！
+
+> DDoS 像全班安靜（entropy 降）、蠕蟲擴散像全班亂叫（entropy 升）
+
+**做什麼**：發現不同攻擊類型會產生不同的 entropy 變化模式：
+- **DDoS 打同一個目標** → dstIP entropy 下降（集中在少數 victim）
+- **蠕蟲掃描** → dstPort entropy 上升（大量隨機 port 被敲門）
+
+**對你論文的重要性**：⭐⭐⭐⭐⭐ — 這是你論文「攻擊分類」的核心依據：不同攻擊 → 不同熵值模式 → 可以分類！
+
+
+### 論文 5：Nychis (2008) — entropy 的盲點
+
+> 有時候教室看起來正常（聲音分散），但其實大家都在傳紙條作弊。光聽聲音不夠。
+
+**做什麼**：誠實檢討 entropy 的弱點：
+- 大部分異常抓得到 ✅
+- 但某些攻擊只改變「流量大小」不改變「分佈形狀」→ entropy 看不出來 ❌
+- 解法：**不能只用一個 entropy，要結合多個維度 + 其他指標**
+
+**對你論文的重要性**：⭐⭐⭐⭐ — 告訴你 entropy 不是萬能的，你的論文要說明覆蓋範圍和限制。
+
+
+## 2. 這三篇是把熵值搬進 SDN
+
+### 論文 6：Mousavi (2015) — 第一次在 SDN 交換機上算 entropy
+
+> 把「聽教室聲音」這件事，直接裝在交換機（郵差）身上
+
+**做什麼**：在 OpenFlow 交換機上實作 entropy 計算，用 sliding window（滑動窗口，看最近幾秒的流量），entropy 低於門檻就發警報。
+
+**對你論文的重要性**：⭐⭐⭐⭐ — 證明「SDN 交換機上算 entropy」技術上可行，你的系統架構可以直接參考。
+
+
+### 論文 7：Giotis (2014) — SDN 裡大規模抓攻擊
+
+> 不只一間教室，整棟樓都在監控
+
+**做什麼**：結合 OpenFlow + sFlow 兩種資料來源，在 SDN 環境做大規模 entropy-based 攻擊偵測。證明這個方法可以 scale（擴展到整棟大樓）。
+
+**對你論文的重要性**：⭐⭐⭐ — 補充 scalability 的證據。
+
+
+### 論文 8：Kalkan (2018) — 用 Rényi entropy 取代 Shannon entropy
+
+> Shannon entropy 是一把固定刻度的尺，Rényi entropy 是可以調刻度的尺
+
+**做什麼**：用 Rényi entropy（Shannon 的廣義版，多一個可調參數 α）取代傳統 Shannon entropy。不同 α 值對不同攻擊敏感度不同，可以調參數適應不同場景。
+
+**對你論文的重要性**：⭐⭐⭐ — 你的「多維度熵值」如果想擴充，可以考慮不只 Shannon，也加入 Rényi。
+
+
+## 3. 這兩篇幫你快速入門（Survey）
+
+### 論文 9：SDN Entropy DDoS 總回顧（2023-2024）
+
+> 有人幫你把所有相關論文整理成一張大地圖
+
+直接搜 `"Entropy Based DDoS Detection and Mitigation Methods in SDN"`，裡面有所有 SDN + entropy 方法的比較表。讀這一篇抵十篇。
+
+### 論文 10：Fernandes (2019) — 網路異常偵測大全
+
+> 不只 entropy，所有抓攻擊的方法都在這
+
+把 entropy-based 方法放在整個 anomaly detection 家族中比較，讓你論文 Chapter 2 可以說「為什麼選 entropy 而不是其他方法」。
+
+
+## 4. 整體邏輯鏈（你論文 Chapter 2 的骨架）
 
 ```
-Shannon 資訊理論（1948）
-  └→ Entropy 度量隨機性/不確定性
-      └→ 網路流量可視為機率分佈（srcIP, dstIP, port...）
+Shannon 提出「資訊量可以量化」（1948）
+  └→ entropy = 測量亂度的數字
+      └→ 網路流量可以看成機率分佈（誰在傳、傳給誰、從哪個門）
           └→ 正常流量：分佈穩定，entropy 在可預測範圍
-          └→ 攻擊流量：分佈偏離，entropy 出現顯著變化
-              └→ 不同攻擊類型產生不同 entropy 變化模式（Wagner 2005）
-                  └→ 多維度 entropy 可分類攻擊（Lakhina 2005）
-                      └→ SDN 控制層可即時讀取 switch 統計計算 entropy（Mousavi 2015）
+          └→ 攻擊流量：分佈被破壞，entropy 出現異狀
+              └→ 不同攻擊破壞的方式不同（Wagner 2005）
+                  └→ 所以看多個 entropy 可以分類攻擊類型（Lakhina 2005）
+                      └→ SDN 交換機可以直接算（Mousavi 2015）
+                          └→ 你的論文：組合多種 Sketch，在 SDN 中同時算多個 entropy，精確分類攻擊
 ```
 
----
 
-## 六、下一步建議
+## 5. 建議閱讀順序
 
-1. **先讀 Survey**：從 #9（SDN entropy DDoS review）和 #10（general anomaly detection survey）入手，快速建立全景
-2. **再讀基石**：#2–#5 是 entropy-for-security 的經典，引用數高、方法被大量引用
-3. **SDN 應用**：#6–#8 展示如何在 SDN 中落地
-4. **整合到 Chapter 2**：以上邏輯鏈即為文獻回顧章的 backbone
+| 順序 | 論文 | 理由 |
+|:--:|------|------|
+| ① | 論文 9（Survey） | 先看大地圖，知道有哪些路線 |
+| ② | 論文 4（Wagner） | 最直覺：不同攻擊 → 不同 entropy 模式 |
+| ③ | 論文 2+3（Lakhina x2） | 核心：多維度 + 自動判斷 |
+| ④ | 論文 1（Feinstein） | 歷史根源，知道這條路怎麼開始的 |
+| ⑤ | 論文 5（Nychis） | 認識盲點，論文要提限制 |
+| ⑥ | 論文 6（Mousavi） | SDN 實作藍圖 |
+| ⑦ | 論文 8（Kalkan） | 進階選配：Rényi entropy |
 
----
 
-## 相關搜尋關鍵詞（供後續擴充）
+## 6. 關鍵搜尋詞（以後要擴充文獻用）
 
 - `"entropy based" "DDoS detection" "SDN" survey`
 - `"Shannon entropy" "network anomaly" Lakhina`
 - `"Renyi entropy" OR "Tsallis entropy" DDoS SDN`
-- `"generalized entropy" network attack detection`
 - `"information theoretic" network security anomaly`
