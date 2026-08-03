@@ -1,167 +1,198 @@
-# 第三章 方法論
+# 第三章 多 Sketch 協同攻擊檢測框架
 
-本章描述多維度熵值攻擊檢測與分類框架的設計。系統由三個模組構成：部署於交換機端的資料收集層、運行於控制器的熵值計算引擎、以及攻擊分類器。
+本章描述框架的設計。核心命題是：不依賴任何單一 Sketch 的完美性，而是讓多個互補的 Sketch 同時運行，各自產出所擅長的特徵，再將這些異質特徵融合成分類決策的依據。
 
-## 3.1 系統架構
+## 3.1 框架總覽
+
+多 Sketch 協同框架包含四個層次：Sketch 層、特徵擷取層、融合層、以及分類層。
 
 ```
-┌─────────────────────────────────────────────────┐
-│                  SDN Controller                  │
-│  ┌───────────┐  ┌──────────────┐  ┌──────────┐ │
-│  │  Elastic   │  │ Multi-Dim    │  │ Attack    │ │
-│  │  Sketch    │→│ Entropy      │→│ Classifier│ │
-│  │  (Flow     │  │ Calculator   │  │           │ │
-│  │   Stats)   │  │              │  │           │ │
-│  └───────────┘  └──────────────┘  └──────────┘ │
-│                                                  │
-│  輸出：Normal / DDoS_spoofed / DDoS_botnet /     │
-│        Port_Scan / Flash_Crowd                   │
-└─────────────────────────────────────────────────┘
-         ↑  flow statistics
+┌─────────────────────────────────────────────────────────┐
+│                    SDN Controller                       │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │              融合層 + 分類層                       │   │
+│  │  ┌──────────────────────────────────────────┐   │   │
+│  │  │         Joint Feature Vector             │   │   │
+│  │  │  [freq_dist | entropy | heavy_hitters |  │   │   │
+│  │  │   cardinality | quantiles | ...]         │   │   │
+│  │  └────┬──────────┬──────────┬──────────────┘   │   │
+│  │       │          │          │                   │   │
+│  └───────┼──────────┼──────────┼───────────────────┘   │
+│          │          │          │                       │
+│  ┌───────┴────┐ ┌───┴────┐ ┌──┴───────┐               │
+│  │ CM Sketch  │ │Elastic │ │ UnivMon  │  UCL-Sketch  │
+│  │ (frequency)│ │ Sketch │ │(universal│  (learned)    │
+│  └────────────┘ └────────┘ └──────────┘               │
+│                                                         │
+│  輸出：Normal / DDoS_spoofed / DDoS_botnet /            │
+│        Port_Scan / Flash_Crowd / Unknown                │
+└─────────────────────────────────────────────────────────┘
+         ↑  per-packet updates (OpenFlow / P4)
     ┌─────────┐     ┌─────────┐
     │ Switch 1│ ... │ Switch N│
     └─────────┘     └─────────┘
 ```
 
-**資料收集層**在每台 OpenFlow 交換機上維護一個 Elastic Sketch 實例。Elastic Sketch 將流量分為 heavy part（精確追蹤大象流）和 light part（以 CM Sketch 摘要老鼠流）。本方法只使用 light part 的 CM Sketch 計數器陣列進行熵值計算——heavy part 的 flow-level 資訊在此不需要，因為熵值只需要統計分佈，不需要個別 flow 的細節。
+四個 Sketch 在交換機端並行運行，每個封包同時更新所有 Sketch。特徵擷取層定期（預設每 5 秒）從每個 Sketch 讀取其產出，彙整成一個聯合特徵向量。融合層對向量進行正規化與加權。分類層根據聯合向量判斷是否發生攻擊以及攻擊類型。
 
-選擇 Elastic Sketch 而非獨立的 CM Sketch 有兩個原因。一是實務考量：交換機上已經有 Elastic Sketch 處理其他量測任務（heavy hitter 檢測、heavy change 檢測），熵值計算可以直接複用現有的 light part 結構，不引入額外負擔。二是當 flow 從 light part 晉升到 heavy part 時，計數器會被清除，相當於自動過濾了極端 outlier，對熵值估計反而有正面影響。
+### 3.1.1 為什麼是這四種 Sketch
 
-**熵值計算引擎**定期（預設每 5 秒）從 light part 的 CM Sketch 中讀取六個維度的計數器分佈，各自計算歸一化熵值，形成一個六維向量。
+Sketch 的選擇不是隨意的，而是基於**互補性**和**部署可行性**兩個原則。
 
-**攻擊分類器**基於預先建立的攻擊指紋模型進行兩階段判斷：先檢測是否有異常，再比對異常的偏移模式來分類攻擊類型。
+**CM Sketch** 是最基礎也最成熟的頻率估計 Sketch，幾乎所有可程式化交換機平台都支援。它產出頻率分佈特徵——這是最通用的流量信號，任何攻擊都會先反映在頻率變化上。
 
----
+**Elastic Sketch** 補足了 CM Sketch 在結構性資訊上的盲點。它的 heavy/light 分離機制能清楚區分「少數大 flow」和「大量小 flow」，這兩種流量結構對應完全不同的攻擊類型（DDoS vs Port Scan）。
 
-## 3.2 多維度熵值計算
+**UnivMon** 提供的是靈活性。前兩者部署時就決定了要量測什麼（頻率、熵值、heavy hitter），UnivMon 的通用摘要可以在事後回答部署時沒預先設定的查詢——這在面對未知攻擊時有實務價值。
 
-### 3.2.1 六個監測維度
+**UCL-Sketch** 代表精度和效率的權衡選項。在記憶體極度受限的場景下，UCL-Sketch 可以在相同記憶體預算下達到比 CM Sketch 更高的頻率估計精度，讓框架在低成本硬體上也能運行。
 
-每個封包經過交換機時，Elastic Sketch 根據封包的五個 header 欄位進行 hash 更新。本研究監測以下六個維度：
-
-| 符號 | 維度 | Hash 對象 |
-|------|------|----------|
-| $H_{srcIP}$ | 來源 IP 熵值 | srcIP（32-bit） |
-| $H_{dstIP}$ | 目的地 IP 熵值 | dstIP（32-bit） |
-| $H_{srcPort}$ | 來源埠熵值 | srcPort（16-bit） |
-| $H_{dstPort}$ | 目的地埠熵值 | dstPort（16-bit） |
-| $H_{flowSize}$ | 流量大小熵值 | 5-tuple flow key（104-bit） |
-| $H_{proto}$ | 協定熵值 | protocol（8-bit） |
-
-前五個維度各自對應 CM Sketch 的一組獨立 hash 函數——同一個封包會同時更新六個維度的計數器。第六個維度 $H_{proto}$ 較為特殊：因為協定類型只有少數幾種（TCP=6, UDP=17, ICMP=1），其熵值變化範圍有限，但對於檢測特定攻擊（如 ICMP flood）仍有價值。
-
-### 3.2.2 熵值計算與歸一化
-
-每個時間窗口結束時，從 CM Sketch 讀取計數器陣列。令 $n_i$ 表示計數值為 $i$ 的計數器數量（跨所有列合併），$N = \sum_i i \cdot n_i$ 為總封包數，$m$ 為最大計數值。
-
-該維度的原始熵值為：
-
-$$H = -\sum_{i=1}^{m} \frac{i \cdot n_i}{N} \cdot \log_2\left(\frac{i \cdot n_i}{N}\right)$$
-
-歸一化到 $[0, 1]$：
-
-$$\hat{H} = \frac{H}{\log_2(N)}$$
-
-歸一化讓不同維度的熵值可以直接比較——$\hat{H} \approx 0$ 表示流量集中在極少數值（例如所有封包打到同一個 IP），$\hat{H} \approx 1$ 表示流量均勻分散在所有可能值。
-
-### 3.2.3 時間平滑
-
-單一窗口的熵值對瞬時抖動敏感。我們採用指數加權移動平均（EWMA）平滑：
-
-$$H^{smooth}(t) = \alpha \cdot H(t) + (1-\alpha) \cdot H^{smooth}(t-1)$$
-
-$\alpha$ 預設為 0.3，對應約 3 個時間窗口的衰減記憶。這個數值在靈敏度與穩定性之間取了折衷——$\alpha$ 太高會放大雜訊導致誤報，太低則攻擊開始後需要數十秒才會觸發警報。
-
-### 3.2.4 CM Sketch 偏差修正
-
-CM Sketch 的高估偏差在正常流量下影響有限，但在攻擊情境下——大量 elephant flow 湧入 light part，計數器被反覆碰撞推高——會顯著扭曲計數器分佈，使熵值被低估。
-
-修正方法：利用 CM Sketch 的理論誤差上界 $\mathbb{E}[\text{error}] \leq N / w$（$w$ 為每列計數器數），對每個計數器進行保守折減：
-
-$$c_j^{corrected} = \max(0, c_j - \lceil N / w \rceil)$$
-
-折減後重新計算有效封包總數和計數器分佈，再代入熵值公式。這個方法的保守性在於「可能折減過頭」——部分合法的小計數值可能被歸零。因此在極低流量情境下（$N$ 很小、$N/w < 1$），跳過修正步驟。
+這四種 Sketch 的選擇不是固定不變的——框架的設計允許根據部署環境增減 Sketch 種類。第三章的重點不是「這四種一定要用」，而是「如何系統性地選擇和組合 Sketch」。
 
 ---
 
-## 3.3 熵值向量與攻擊指紋
+## 3.2 Sketch 層：並行部署與資料收集
 
-經過上述計算後，每個時間窗口產出一個六維歸一化熵值向量：
+### 3.2.1 部署模式
 
-$$\mathbf{H}(t) = [\hat{H}_{srcIP}, \hat{H}_{dstIP}, \hat{H}_{srcPort}, \hat{H}_{dstPort}, \hat{H}_{flowSize}, \hat{H}_{proto}]$$
+框架支援兩種部署模式：
 
-### 3.3.1 攻擊的預期熵值模式
+**控制器端集中模式**：四個 Sketch 實例運行在控制器上。交換機透過 OpenFlow 的 flow stats 定期回報流量統計，控制器端更新 Sketch。優點是部署簡單，不需要修改交換機硬體或韌體。缺點是延遲較高——從攻擊發生到控制器感知，中間有 flow stats 的 polling 間隔。適合原型驗證和實驗階段。
 
-不同網路事件預期會在六維向量上產生不同的偏移。以下是基於理論分析的預期模式——請注意這些是假設（hypotheses），第四章將透過實驗進行驗證：
+**資料平面分散模式**：Sketch 直接在交換機的資料平面上運行。對 P4 可程式化交換機（如 Barefoot Tofino），CM Sketch 和 Elastic Sketch 已有成熟的硬體實作（Lai et al., 2022）；UnivMon 和 UCL-Sketch 的硬體移植則需要額外工程。各交換機獨立維護自己的 Sketch，控制器定期彙整。優點是延遲低、吞吐量高。缺點是部署門檻較高。
 
-| 事件 | H_srcIP | H_dstIP | H_dstPort | H_flowSize | H_proto |
-|------|:-------:|:-------:|:---------:|:----------:|:-------:|
-| 正常流量 | 中 | 中 | 中 | 中 | 中 |
-| DDoS（偽造來源） | ↑↑ | → | → | ↑ | → |
-| DDoS（殭屍網路） | ↑ | → | → | ↑↑ | → |
-| Port Scan | → | ↑↑ | ↑↑ | ↓ | → |
-| Flash Crowd | ↓ | ↑↑ | ↑ | ↑↑ | → |
+本研究的實驗以控制器端集中模式為主，但第三章的方法設計與部署模式無關——聯合特徵的定義和分類邏輯在兩種模式下完全相同。
 
-↑ 代表熵值預期高於正常基準、↓ 代表低於基準。箭頭數量表示預期偏移幅度。
+### 3.2.2 封包處理流程
 
-這個指紋表的核心邏輯不在於絕對數值，而在於**相對關係**。DDoS（偽造來源）和 Flash Crowd 在 $H_{flowSize}$ 上都偏高，但前者 $H_{srcIP}$ 會飆升（隨機偽造 IP），後者 $H_{srcIP}$ 反而可能略低於正常（真實使用者群有限）。$H_{dstIP}$ 的差異是另一個關鍵——DDoS 打單一目標所以正常或偏低，Flash Crowd 可能打多台伺服器所以偏高。
+每個封包經過交換機時，同時觸發四個 Sketch 的更新：
 
-**DDoS 的兩種子類型**需要特別區分：偽造來源 IP 的 DDoS 會產生極高的 $H_{srcIP}$（每個封包都是新的來源 IP），殭屍網路的 $H_{srcIP}$ 只會略高（殭屍主機數量有限），但後者的 $H_{flowSize}$ 更高（每台殭屍發送大量封包，類似 elephant flow）。這兩個指標的組合——高 $H_{srcIP}$ + 中等 $H_{flowSize}$ vs 中等 $H_{srcIP}$ + 高 $H_{flowSize}$——是區分兩種 DDoS 的主要依據。
+1. **CM Sketch**：對 flow 5-tuple 做 hash → 遞增對應的 $d$ 個計數器
+2. **Elastic Sketch**：Ostracism 機制判斷 heavy/light → 更新 heavy part 或 light part 的 CM Sketch
+3. **UnivMon**：對封包 header 做 universal hash → 更新通用摘要結構
+4. **UCL-Sketch**：對 flow key 做 hash → 更新學習型估計桶
 
-**Port Scan 和 Flash Crowd** 都表現為 $H_{dstIP}$ 和 $H_{dstPort}$ 偏高，容易混淆。區分點在 $H_{flowSize}$：Port Scan 的每個 flow 極短（通常 1-2 個封包），$H_{flowSize}$ 會顯著低於正常；Flash Crowd 是大量真實使用者產生實質流量，$H_{flowSize}$ 反而偏高。
+每個 Sketch 使用獨立的記憶體空間，互不干擾。總記憶體佔用為四個 Sketch 各自的記憶體之和。
 
-### 3.3.2 基準向量建立
+### 3.2.3 時間窗口與資料讀取
 
-正常流量的基準向量 $\mathbf{H}_{baseline}$ 透過在無攻擊時段採集平均值獲得：
+每 $T = 5$ 秒（可配置），控制器從四個 Sketch 中讀取以下資料：
 
-$$\mathbf{H}_{baseline} = \frac{1}{T}\sum_{t=1}^{T} \mathbf{H}(t) \quad \text{（無攻擊時段）}$$
+| Sketch | 讀取內容 |
+|--------|---------|
+| CM Sketch | 完整計數器陣列（$d \times w$ 個計數值） |
+| Elastic Sketch | Heavy part 的 flow list + light part 的計數器分佈 |
+| UnivMon | 通用摘要結構的 bit array |
+| UCL-Sketch | 學習型估計桶的狀態向量 |
 
-向量中每個維度的標準差 $\sigma_d$ 也同時記錄，用於後續的偏移量化。
-
-實務上，基準向量需要定期更新以適應網路的正常變化（例如白天和晚上的流量模式不同）。目前的設計假設基準在校準期間內是穩定的；更複雜的動態基準更新機制留待後續研究。
-
----
-
-## 3.4 分類策略
-
-### 3.4.1 第一階段：異常檢測
-
-計算當前向量與基準向量的歐氏距離：
-
-$$D(t) = \|\mathbf{H}(t) - \mathbf{H}_{baseline}\|_2$$
-
-當 $D(t) > \tau$ 時觸發異常警報。$\tau$ 根據校準期間距離分佈的第 99 百分位數設定——這意味著在正常情況下，誤報率預期低於 1%。
-
-選擇歐氏距離而非更複雜的 Mahalanobis 距離，是出於計算成本和可解釋性的考量。六維歐氏距離的物理意義直觀——就是「當前流量模式與正常模式差了多遠」。Correlation 在六維度之間確實存在（例如 $H_{srcIP}$ 和 $H_{flowSize}$ 在某些攻擊中會一起變動），但加入 covariance 矩陣會增加計算複雜度和對基準資料量的需求。
-
-### 3.4.2 第二階段：攻擊分類
-
-異常觸發後，計算偏移向量：
-
-$$\Delta\mathbf{H} = \mathbf{H}(t) - \mathbf{H}_{baseline}$$
-
-每個維度的偏移量化為三個等級：
-
-- 若 $\Delta H_d > \sigma_d$：↑（偏高）
-- 若 $\Delta H_d < -\sigma_d$：↓（偏低）
-- 否則：→（正常）
-
-將量化後的偏移向量與 3.3.1 節的預期指紋進行比對。比對採用加權相似度：為每種攻擊定義一個權重向量，對區分該攻擊最有鑑別力的維度給予較高權重。
-
-範例：對 DDoS（偽造來源）的比對中，$H_{srcIP}$ 權重最高（因為這是此類攻擊最顯著的特徵），$H_{proto}$ 權重最低（通常沒有異常）。若量化向量在所有高權重維度上都與 DDoS（偽造來源）的預期方向一致，總分就會最高，系統輸出該分類。
-
-如果沒有任何攻擊類型的相似度達到門檻，輸出「Unknown Anomaly」——這保留了發現未知攻擊模式的可能性。
-
-### 3.4.3 替代方案
-
-當網路環境穩定、攻擊模式明確時，閾值規則可以滿足需求。當面對更複雜的混合攻擊或邊界案例時，可以改用輕量級分類器處理六維熵值向量。決策樹（Decision Tree）和 KNN（$k=3$）是兩種適合的候選方案：前者規則透明、可追溯判決邏輯；後者不需要訓練階段、適合流式資料的線上分類。
+讀取後，計數器可選擇清零或保留（sliding window vs. tumbling window）。預設使用 tumbling window（每窗獨立），以簡化基準向量的建立。
 
 ---
 
-## 3.5 計算與記憶體成本
+## 3.3 特徵擷取層
 
-每個時間窗口的主要操作：讀取 CM Sketch 計數器陣列（$O(d \cdot w)$）、偏差修正（$O(d \cdot w)$）、六次熵值計算（各 $O(d \cdot w)$）、一次歐氏距離 + 分類比對（$O(1)$）。總時間複雜度 $O(d \cdot w)$。
+### 3.3.1 從各 Sketch 擷取的特徵
 
-在典型配置下（$d=3$ 列、$w=2^{12}=4096$ 行，每計數器 4 bytes），六個維度的總記憶體約 $6 \times 3 \times 4096 \times 4 \approx 288$ KB。加上 Elastic Sketch heavy part 的 hash table，整體記憶體在 1-2 MB 以內。
+每個時間窗口結束後，從四個 Sketch 中擷取以下特徵，形成聯合特徵向量：
 
-這個數字對交換機而言可行——即使是硬體資源受限的場景，也可以只在控制器端集中維護一個 Elastic Sketch（透過 OpenFlow 的 flow stats 定期收集），犧牲部分即時性換取部署彈性。
+| 特徵 | 來源 Sketch | 說明 | 維度 |
+|------|-----------|------|:--:|
+| $F_{freq}$ | CM Sketch | 頻率分佈的統計量（均值、變異數、最大值） | 3 |
+| $F_{entropy}$ | Elastic Sketch | 六個流量維度的歸一化熵值 | 6 |
+| $F_{hh}$ | Elastic Sketch | Heavy hitter 數量及佔總流量比例 | 2 |
+| $F_{card}$ | Elastic Sketch | Light part 的 cardinality 估計（非零計數器數） | 1 |
+| $F_{univ}$ | UnivMon | 通用摘要的查詢結果（預設查 entropy 和分位數） | 2 |
+| $F_{ucl}$ | UCL-Sketch | 高精度頻率估計的統計摘要 | 3 |
+
+**聯合特徵向量維度**：$3 + 6 + 2 + 1 + 2 + 3 = 17$ 維。
+
+維度不高（17 維），避免了高維特徵空間帶來的維數災難，同時也比任何單一 Sketch 產出的特徵（最多 6 維的 Elastic Sketch 熵值向量）豐富得多。
+
+### 3.3.2 各特徵的計算方式
+
+**頻率分佈統計（$F_{freq}$）**：從 CM Sketch 的計數器陣列中計算三個統計量——平均計數值 $\mu$、計數值的標準差 $\sigma$、以及最大計數值 $\max(c)$。這三個數字捕捉了 flow 頻率分佈的核心形狀：$\mu$ 反映整體流量水準、$\sigma$ 反映 flow 間的不均勻度、$\max(c)$ 反映是否存在極端的 elephant flow。
+
+**六維度熵值（$F_{entropy}$）**：從 Elastic Sketch 的 light part CM Sketch 中，分別對來源 IP、目的地 IP、來源埠、目的地埠、5-tuple flow key、協定編號等六個 hash 目標計算 Shannon 熵值，歸一化到 $[0, 1]$。計算公式與之前版本相同：
+
+$$H = -\sum_{i=1}^{m} \frac{i \cdot n_i}{N} \cdot \log_2\left(\frac{i \cdot n_i}{N}\right), \quad \hat{H} = H / \log_2(N)$$
+
+**Heavy hitter 資訊（$F_{hh}$）**：直接從 Elastic Sketch 的 heavy part 讀取——heavy part 中的 flow 數量、這些 flow 的總流量佔全部流量的比例。這兩個數字直觀地區分「少數 flow 佔據大部分流量」和「流量均勻分散」兩種極端情境。
+
+**Cardinality（$F_{card}$）**：Elastic Sketch light part 的 CM Sketch 中非零計數器的數量。這個數字近似於活躍 flow 的數量，對 Port Scan（大量新 flow）特別敏感。
+
+**通用摘要查詢（$F_{univ}$）**：從 UnivMon 的通用摘要中查詢兩個預設指標——整體流量的 Shannon 熵值估計、以及 flow 大小的 95 百分位數。後者提供了流量分佈尾端的資訊。
+
+**UCL 頻率摘要（$F_{ucl}$）**：從 UCL-Sketch 的學習型估計桶中提取 flow 頻率的均值、變異數、以及估計精度的信心指標。
+
+### 3.3.3 特徵正規化
+
+各特徵的數值範圍差異很大——$\max(c)$ 可能達到數十萬，而 $\hat{H}$ 永遠在 $[0, 1]$。為了讓分類器公平對待所有特徵，使用 Z-score 正規化：
+
+$$F_i^{norm} = \frac{F_i - \mu_i}{\sigma_i}$$
+
+其中 $\mu_i$ 和 $\sigma_i$ 是在無攻擊校準期間計算的特徵 $i$ 的均值和標準差。正規化後，每個特徵的數值代表「相對於正常基準偏離了幾個標準差」。
+
+---
+
+## 3.4 融合層與分類層
+
+### 3.4.1 異常檢測
+
+計算當前聯合特徵向量與基準向量的加權歐氏距離：
+
+$$D(t) = \sqrt{\sum_{i=1}^{17} w_i \cdot (F_i^{norm}(t))^2}$$
+
+其中 $w_i$ 是特徵 $i$ 的權重。初始設定所有權重均等（$w_i = 1/17$），後續可根據消融實驗結果調整——對區分攻擊貢獻大的特徵給更高權重。
+
+當 $D(t) > \tau$ 時觸發異常。$\tau$ 根據校準期間距離分佈的第 99 百分位數設定，對應預期的 1% 誤報率。
+
+### 3.4.2 攻擊分類
+
+異常觸發後，分類器分析 17 維聯合向量的偏移模式，與預先定義的攻擊指紋進行比對。指紋定義為每個攻擊類型在各特徵上的預期偏移方向（↑偏高 / →正常 / ↓偏低）：
+
+| 特徵群 | DDoS (spoofed) | DDoS (botnet) | Port Scan | Flash Crowd |
+|--------|:---:|:---:|:---:|:---:|
+| $F_{freq}$: max | ↑↑ | ↑↑↑ | → | ↑↑ |
+| $F_{entropy}$: srcIP | ↑↑ | ↑ | → | ↓ |
+| $F_{entropy}$: dstIP | → | → | ↑↑ | ↑↑ |
+| $F_{entropy}$: dstPort | → | → | ↑↑ | ↑ |
+| $F_{hh}$: count | → | ↑ | ↓↓ | ↑↑ |
+| $F_{hh}$: ratio | → | ↑↑ | ↓↓ | ↑↑ |
+| $F_{card}$ | ↑ | ↑ | ↑↑↑ | ↑↑ |
+
+每個攻擊類型定義一個參考偏移向量 $\mathbf{R}_k = [r_1, r_2, ..., r_{17}]$，其中 $r_i \in \{-1, 0, +1\}$ 對應 ↓/→/↑。分類時計算當前歸一化向量與各參考向量的相似度（餘弦相似度），取最高分對應的攻擊類型：
+
+$$k^* = \arg\max_k \frac{\mathbf{F}^{norm} \cdot \mathbf{R}_k}{\|\mathbf{F}^{norm}\| \cdot \|\mathbf{R}_k\|}$$
+
+若所有相似度低於門檻（預設 0.5），輸出 "Unknown Anomaly"——保留發現新型態攻擊的空間。
+
+### 3.4.3 分類器設計的考量
+
+選擇規則匹配而非 ML 分類器的原因有兩個。第一，可解釋性——當系統判定某個流量為 Port Scan，管理者可以看到「cardinality 偏高、heavy hitter ratio 偏低」，這些是直觀且可驗證的理由。第二，冷啟動——規則匹配不需要訓練資料，框架部署後可以立即運作。缺點是規則的定義依賴領域知識，當攻擊行為與預期指紋有出入時可能誤判。第四章會比較規則匹配與輕量級 ML（決策樹）在相同特徵上的效果。
+
+---
+
+## 3.5 運作流程總覽
+
+```
+每個時間窗口 t（5 秒）：
+  1. 從四個 Sketch 中讀取原始資料
+  2. 從 CM Sketch 計算 F_freq（μ, σ, max）
+  3. 從 Elastic Sketch 計算 F_entropy（6 維）+ F_hh（2 維）+ F_card（1 維）
+  4. 從 UnivMon 查詢 F_univ（2 維）
+  5. 從 UCL-Sketch 計算 F_ucl（3 維）
+  6. Z-score 正規化 → 17 維聯合向量
+  7. 計算加權歐氏距離 D(t)
+  8. 若 D(t) > τ：
+     a. 餘弦相似度比對 4 種攻擊參考向量
+     b. 輸出最佳匹配攻擊類型（或 Unknown）
+  9. 否則：輸出 Normal
+```
+
+---
+
+## 3.6 資源分析
+
+四個 Sketch 的記憶體佔用合計：CM Sketch ~96 KB（d=3, w=4096, 4B/counter）、Elastic Sketch ~600 KB（含 heavy part hash table）、UnivMon ~200 KB、UCL-Sketch ~50 KB。總計約 1 MB，遠小於基於 flow table 的方法（可能需要數十 MB）。
+
+每窗口的計算開銷集中在步驟 2-5，複雜度上限為 $O(d \cdot w)$（遍歷 CM Sketch 計數器陣列），在 $d=3, w=4096$ 時約 12K 次操作，在現代 CPU 上可在毫秒級完成。

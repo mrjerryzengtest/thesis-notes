@@ -1,235 +1,157 @@
 # 第四章 實驗設計（規劃版）
 
-## 4.1 實驗目標
-
-實驗旨在回答以下四個研究問題（Research Questions）：
+## 4.1 研究問題（Revised）
 
 | RQ | 問題 | 對應指標 |
 |-----|------|---------|
-| RQ1 | 多維度熵值方法在攻擊**檢測**上是否優於單一維度？ | Detection Rate, FPR |
-| RQ2 | 多維度熵值方法能否有效**分類**不同攻擊類型？ | Classification Accuracy, F1-score |
-| RQ3 | CM Sketch 偏差修正對熵值估計精度有多大提升？ | Relative Error (RE) |
-| RQ4 | 系統的資源消耗是否在實際部署的可接受範圍內？ | Memory, CPU, Detection Latency |
+| RQ1 | 多 Sketch 協同框架在攻擊**檢測**上是否優於單一 Sketch？ | Detection Rate, FPR |
+| RQ2 | 聯合特徵向量能否有效**分類**不同攻擊類型？ | Classification Accuracy, Per-class F1 |
+| RQ3 | 每個 Sketch 對不同攻擊類型的**貢獻**有多大？（消融實驗） | Δ Detection Rate（移除該 Sketch 後的降幅） |
+| RQ4 | 框架的資源消耗是否在實際部署可接受範圍內？ | Memory, CPU, Detection Latency |
 
 ---
 
 ## 4.2 實驗環境
 
-### 4.2.1 網路拓撲
-
-```
-         ┌──────────┐
-         │ Controller │  (Ryu / ONOS)
-         │ + 檢測模組  │
-         └─────┬──────┘
-               │ OpenFlow
-      ┌────────┼────────┐
-      │        │        │
-   ┌──┴──┐ ┌──┴──┐ ┌──┴──┐
-   │ SW1 │ │ SW2 │ │ SW3 │  (Open vSwitch)
-   └──┬──┘ └──┬──┘ └──┬──┘
-      │        │        │
-   ┌──┴──┐ ┌──┴──┐ ┌──┴──┐
-   │Hosts│ │Hosts│ │Hosts│
-   │1-5  │ │6-10 │ │11-15│
-   └─────┘ └─────┘ └─────┘
-```
-
-### 4.2.2 軟硬體規格
-
 | 項目 | 規格 |
 |------|------|
 | 模擬器 | Mininet 2.3.0 |
-| SDN 控制器 | Ryu 4.34（Python）或 ONOS 2.7（Java） |
-| 交換機 | Open vSwitch 2.17（支援 OpenFlow 1.3） |
+| SDN 控制器 | Ryu 4.34 |
+| 交換機 | Open vSwitch 2.17（OpenFlow 1.3） |
 | 流量產生 | iPerf3（正常流量）、Scapy（攻擊流量） |
-| 程式語言 | Python 3.10+ |
-| Sketch 實作 | 自行實作 Elastic Sketch + CM Sketch（Python / C++） |
+| 背景流量 | CAIDA Anonymized Internet Traces（或 D-ITG 合成流量） |
 | 主機 | Ubuntu 22.04 LTS, 8GB RAM, 4-core CPU |
-
-### 4.2.3 實驗規模
-
-| 參數 | 值 |
-|------|-----|
-| 主機數量 | 15-50 台 |
-| 交換機數量 | 3-5 台 |
+| 拓撲 | 3 switches × 15 hosts（fat-tree） |
 | 正常流量速率 | 100-500 Mbps |
-| 攻擊持續時間 | 30-120 秒 / 次 |
-| 實驗總時長 | 300 秒 / run（150s 正常 + 150s 混合） |
+| 實驗總時長 | 300 秒（150s normal + 150s mixed） |
 
 ---
 
-## 4.3 資料集與流量產生
+## 4.3 攻擊場景
 
-### 4.3.1 正常流量
+四種攻擊類型 × 四種強度 = 16 個場景，每個場景重複 10 次。
 
-使用 CAIDA Anonymized Internet Traces 作為背景流量。CAIDA trace 是從真實網際網路骨幹收集的匿名化封包軌跡，廣泛用於網路研究。
+| 攻擊 | 工具 | 強度等級 |
+|------|------|:--:|
+| DDoS（偽造來源 IP） | Scapy TCP SYN flood, 隨機 srcIP | L / M / H / E |
+| DDoS（殭屍網路） | hping3 UDP flood, 10-20 固定來源 | L / M / H / E |
+| Port Scan | Scapy / nmap, 1-2 來源掃 1000 埠 | L / M / H / E |
+| Flash Crowd | ApacheBench, 50+ HTTP 並發 | L / M / H / E |
 
-- **來源**：CAIDA 2023/2024 Chicago monitor
-- **預處理**：過濾為 TCP/UDP/ICMP 封包，移除破損或過短的封包
-- **注入方式**：使用 tcpreplay 以原始速率重播，或使用自訂腳本以指定速率重播
+強度定義（相對於正常流量基準）：
 
-替代方案：若 CAIDA trace 取得有困難，可使用校園網路蒐集之流量資料，或使用 D-ITG（Distributed Internet Traffic Generator）產生合成流量。
-
-### 4.3.2 攻擊流量生成
-
-使用 Scapy + 自訂腳本產生四種攻擊流量：
-
-| 攻擊類型 | 工具 | 參數設定 | 目標 |
-|----------|------|---------|------|
-| **DDoS（偽造來源 IP）** | Scapy | 隨機 srcIP, 固定 dstIP, TCP SYN flood | 單一受害主機 |
-| **DDoS（殭屍網路）** | `hping3` 並行 + Scapy | 10-20 固定來源 IP, 高流量 UDP flood | 單一受害主機 |
-| **Port Scan** | `nmap` / Scapy | 1-2 來源 IP, 掃描 1000 埠 | 1-2 目標主機 |
-| **Flash Crowd** | ApacheBench (`ab`) | 50+ 並發連線, HTTP GET | 網頁伺服器 |
-
-### 4.3.3 實驗場景組合
-
-共設計 **16 個實驗場景**（4 種攻擊 × 4 種強度）：
-
-| 攻擊強度 | 封包速率（相對正常） | 攻擊 flow 佔比 |
-|:--------:|:-------------------:|:------------:|
-| 輕微 (L) | 1.2× | 15% |
-| 中等 (M) | 2× | 30% |
-| 重度 (H) | 5× | 50% |
-| 極端 (E) | 10× | 70% |
-
-每個場景重複 10 次，取平均結果。總實驗次數：16 × 10 = 160 次。
+| 等級 | 攻擊封包速率 | 攻擊 flow 佔比 |
+|:----:|:----------:|:------------:|
+| L | 1.2× | 15% |
+| M | 2× | 30% |
+| H | 5× | 50% |
+| E | 10× | 70% |
 
 ---
 
-## 4.4 評估指標
+## 4.4 對照組（Baseline Methods）
 
-### 4.4.1 檢測指標
+對照組設計的核心原則是：**逐一比較單一 Sketch 與多 Sketch 組合的效果差異**。
 
-| 指標 | 公式 | 說明 |
-|------|------|------|
-| **Detection Rate (DR)** | TP / (TP + FN) | 成功檢測到攻擊的比例 |
-| **False Positive Rate (FPR)** | FP / (FP + TN) | 正常流量被誤報為攻擊的比例 |
-| **Precision** | TP / (TP + FP) | 報警中真正是攻擊的比例 |
-| **F1-score** | 2PR / (P+R) | Precision 與 Recall 的調和平均 |
+### 4.4.1 單一 Sketch Baseline（RQ1）
 
-### 4.4.2 分類指標
+| Baseline | 使用 Sketch | 特徵維度 |
+|----------|-----------|:--:|
+| **CM-only** | CM Sketch 頻率統計 + 簡單閾值檢測 | 3 維（$F_{freq}$） |
+| **Elastic-only** | Elastic Sketch 六維熵值 + heavy hitter 檢測 | 8 維（$F_{entropy} + F_{hh}$） |
+| **UnivMon-only** | UnivMon 通用查詢結果 | 2 維（$F_{univ}$） |
+| **UCL-only** | UCL-Sketch 頻率估計 | 3 維（$F_{ucl}$） |
 
-| 指標 | 說明 |
+### 4.4.2 多 Sketch 組合（RQ1, RQ2）
+
+| 組合 | 包含 Sketch | 特徵維度 |
+|------|-----------|:--:|
+| **2-Sketch** | CM + Elastic | 11 維 |
+| **3-Sketch** | CM + Elastic + UnivMon | 13 維 |
+| **Full (4-Sketch)** | CM + Elastic + UnivMon + UCL | 17 維 |
+
+### 4.4.3 消融實驗（RQ3）
+
+從 Full 組合中逐一移除一個 Sketch，觀察各攻擊類型的檢測率變化：
+
+| 消融組合 | 移除的 Sketch | 保留 |
+|----------|:----------:|------|
+| Full − CM | CM Sketch | Elastic + UnivMon + UCL |
+| Full − Elastic | Elastic Sketch | CM + UnivMon + UCL |
+| Full − UnivMon | UnivMon | CM + Elastic + UCL |
+| Full − UCL | UCL-Sketch | CM + Elastic + UnivMon |
+
+### 4.4.4 外部 Baseline
+
+| 方法 | 說明 |
 |------|------|
-| **Classification Accuracy** | 所有分類正確的比例（整體） |
-| **Per-class F1-score** | 每種攻擊類型的 F1-score |
-| **Confusion Matrix** | 視覺化分類混淆模式 |
+| **PINT-style** | 機率取樣 + 單一維度熵值（非 Sketch，用於驗證全流量 vs 取樣差異） |
+| **Decision Tree on Full** | 使用完整的 17 維聯合向量訓練決策樹，與規則匹配比較（RQ2） |
 
-### 4.4.3 效能指標
+---
 
-| 指標 | 說明 |
+## 4.5 評估指標
+
+### 檢測指標
+
+| 指標 | 定義 |
 |------|------|
-| **Relative Error (RE)** | 估計熵值與真實熵值的相對誤差 |
-| **Detection Latency** | 從攻擊開始到觸發警報的時間 |
-| **Memory Usage** | 資料結構的記憶體佔用 |
-| **CPU Utilization** | 熵值計算的 CPU 時間佔比 |
+| Detection Rate (Recall) | TP / (TP + FN) |
+| False Positive Rate | FP / (FP + TN) |
+| Precision | TP / (TP + FP) |
+| F1-score | 2PR / (P + R) |
+
+### 分類指標
+
+| 指標 | 定義 |
+|------|------|
+| Classification Accuracy | 所有分類正確的比例 |
+| Per-class F1-score | 每種攻擊類型的 F1 |
+| Confusion Matrix | DDoS(spoofed) vs DDoS(botnet) vs Port Scan vs Flash Crowd |
+
+### 效能指標
+
+| 指標 | 定義 |
+|------|------|
+| Detection Latency | 攻擊開始 → 警報觸發的時間 |
+| Total Memory | 所有 Sketch 的記憶體合計 |
+| Per-window CPU | 每時間窗口的特徵計算時間 |
 
 ---
 
-## 4.5 對照組（Baseline Methods）
+## 4.6 參數調校
 
-| 方法 | 說明 | 比較目的 |
-|------|------|---------|
-| **Elastic Sketch 原生** | 單一維度熵值（flow size），使用原作者公式 | RQ1：多維度 vs 單維度的檢測力 |
-| **PINT-style** | 機率取樣 + 單一維度熵值估計 | RQ1, RQ3：全流量 vs 取樣的精度差異 |
-| **Rule-based（Snort）** | 傳統特徵比對 | RQ1：對未知攻擊的檢測力 |
-| **SVM on flow stats** | 機器學習分類（使用 flow 層級特徵） | RQ2：熵值指紋 vs ML 的分類效果 |
-| **本方法（無偏差修正）** | 僅關閉 §3.2.4 的修正步驟 | RQ3：偏差修正的效果 |
-| **本方法（完整版）** | 所有模組啟用 | 完整效能 |
+| 參數 | 範圍 | 預設值 |
+|------|------|:--:|
+| 時間窗口 $T$ | 1s, 3s, 5s, 10s, 30s | 5s |
+| EWMA 平滑 $\alpha$ | 0.1, 0.2, 0.3, 0.5 | 0.3 |
+| 檢測閾值百分位 | 95%, 99%, 99.9% | 99% |
+| 特徵權重 $w_i$ | uniform / 消融導出 | uniform |
 
 ---
 
-## 4.6 參數調校實驗
+## 4.7 實驗步驟與時程
 
-### 4.6.1 關鍵參數列表
+| Phase | 內容 | 預估時間 |
+|:-----:|------|:-------:|
+| 1 | 搭建 Mininet + Ryu 環境 | 1 週 |
+| 2 | 實作四個 Sketch 原型（CM, Elastic, UnivMon, UCL） | 2 週 |
+| 3 | 實作聯合特徵擷取 + 分類器 | 1 週 |
+| 4 | 正常流量 profiling + 參數調校 | 1 週 |
+| 5 | 完整實驗（16 場景 × 10 重複 × 9 組合 = 1440 次） | 2 週 |
+| 6 | 消融實驗 | 1 週 |
+| 7 | 結果分析 + 圖表 | 1 週 |
 
-| 參數 | 範圍 | 預設值 | 調校目的 |
-|------|------|:------:|---------|
-| 時間窗口大小 $T_w$ | 1s, 3s, 5s, 10s, 30s | 5s | 檢測延遲 vs 穩定性權衡 |
-| EWMA 平滑係數 $\alpha$ | 0.1, 0.2, 0.3, 0.5, 0.7 | 0.3 | 靈敏度 vs 抗噪 |
-| 檢測閾值 $\tau_{detect}$ | 90%, 95%, 99% 分位數 | 99% | FPR 控制 |
-| CM Sketch 列數 $d$ | 2, 3, 4, 5 | 3 | 精度 vs 記憶體 |
-| CM Sketch 行數 $w$ | 512, 1024, 2048, 4096 | 4096 | 精度 vs 記憶體 |
-
-### 4.6.2 靈敏度分析策略
-
-採用 **一次變動一個參數**（One-Factor-At-A-Time, OFAT）策略：固定其他參數為預設值，逐一測試每個參數在攻擊強度 M（中等）下的最佳值。最後用最佳參數組合在所有場景中進行完整評估。
-
----
-
-## 4.7 實驗步驟
-
-### Phase 1：基礎設施搭建（預計 1 週）
-
-1. 安裝 Mininet + Ryu 環境
-2. 設定實驗拓撲（3 switches, 15 hosts）
-3. 實作 Elastic Sketch 原型（先不加入熵值計算）
-4. 驗證 OpenFlow 通訊正常
-
-### Phase 2：Baseline 實作（預計 1 週）
-
-1. 實作 Elastic Sketch 原生熵值計算
-2. 實作 PINT-style 取樣熵值
-3. 產生正常流量 + 攻擊流量
-4. 執行 baseline 實驗，收集指標
-
-### Phase 3：本方法實作（預計 2 週）
-
-1. 實作六維度 CM Sketch 結構
-2. 實作多維度熵值計算引擎
-3. 實作偏差修正模組
-4. 實作攻擊分類器（閾值規則 + 決策樹）
-5. 單元測試 + 整合測試
-
-### Phase 4：參數調校（預計 1 週）
-
-1. 正常流量 profiling（建立 baseline 向量）
-2. OFAT 參數掃描
-3. 選擇最佳參數組合
-
-### Phase 5：完整實驗（預計 1-2 週）
-
-1. 16 個場景 × 10 次重複 = 160 次實驗
-2. 收集所有指標資料
-3. 繪製圖表（ROC 曲線、混淆矩陣、時間序列、bar chart）
-
-### Phase 6：分析與撰寫（預計 1 週）
-
-1. 統計顯著性檢定
-2. 結果討論與解釋
-3. 撰寫第四章實驗章節
-
-**總預計工時**：7-8 週
+**總預估**：9 週
 
 ---
 
 ## 4.8 預期結果
 
-### 假設 H1（對應 RQ1）
+**H1（RQ1）**：Full (4-Sketch) 組合在低強度攻擊（L 場景）下檢測率預期優於所有單一 Sketch baseline。原因：輕微攻擊可能在單一量測維度上不明顯，但跨多個互補維度的微小偏移累積後可被聯合向量捕捉。
 
-多維度方法在檢測率上優於單一維度方法，尤其在**低強度攻擊**（L 場景）中差異最大。因為輕微攻擊可能只在一個維度上產生微小變化，多維度聯合觀察能捕捉到單一維度漏掉的信號。
+**H2（RQ2）**：Full 組合的分類準確率在 M 強度以上預期 > 85%。最難區分的組合是 DDoS（botnet）vs Flash Crowd——兩者在 heavy hitter 相關特徵上表現相似，但來源 IP 熵值（$F_{entropy}$: srcIP）預期能提供關鍵區分信號。
 
-### 假設 H2（對應 RQ2）
+**H3（RQ3）**：預期 Elastic Sketch 的貢獻最大（因其提供的結構性資訊對 Port Scan 的區分最關鍵），其次是 CM Sketch（基礎頻率資訊覆蓋所有攻擊類型）。UCL-Sketch 在 L 強度下的貢獻預期較明顯（其高精度頻率估計能捕捉微小的頻率偏移）。
 
-攻擊分類準確率在中等攻擊強度（M）以上可達 85%+。最困難的區分是 DDoS（殭屍網路）vs Flash Crowd，因為兩者在多個維度上行為相似——這兩個類別的混淆是預期中的瓶頸。
-
-### 假設 H3（對應 RQ3）
-
-偏差修正後，熵值估計的相對誤差（RE）可降低 30-50%，尤其在 heavy hitter 密集的攻擊情境下效果最明顯。
-
-### 假設 H4（對應 RQ4）
-
-在 5 秒時間窗口、300 Mbps 流量下，記憶體佔用 < 1 MB，CPU 佔用 < 5%，檢測延遲 < 1 秒。
-
----
-
-## 4.9 可能的風險與對策
-
-| 風險 | 可能性 | 影響 | 對策 |
-|------|:------:|:----:|------|
-| CAIDA trace 無法取得 | 中 | 高 | 使用 D-ITG 產生合成流量，或使用校園網路蒐集的流量 |
-| Mininet 效能瓶頸（高流量情境） | 中 | 中 | 降低流量速率至 200-300 Mbps，或使用 VM-based 拓撲 |
-| 分類準確率不如預期 | 中 | 中 | 改用輕量級 ML 分類器（決策樹 / KNN）替代規則匹配 |
-| Ryu 與 Open vSwitch 版本相容性 | 低 | 中 | 準備備用控制器方案（ONOS） |
-| 攻擊流量不具代表性 | 低 | 低 | 參考 DARPA/ISCX 攻擊資料集作為驗證 |
+**H4（RQ4）**：總記憶體 < 2 MB，Per-window CPU < 10ms，Detection Latency < 2s（包含 flow stats polling 延遲）。資源消耗不是瓶頸——真正的瓶頸是分類邏輯的設計，而不是硬體限制。
