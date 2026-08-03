@@ -96,10 +96,12 @@
 
 | # | 事項 | 狀態 |
 |---|------|:----:|
-| 1 | 撰寫第一章緒論草稿（draft/chapter1-introduction.md） | ✅ |
-| 2 | 撰寫第二章文獻探討草稿（draft/chapter2-literature-review.md） | ✅ |
-| 3 | 撰寫第三章方法論草稿（draft/chapter3-methodology.md） | ✅ |
-| 4 | 規劃第四章實驗設計（notes/16-experiment-design.md） | ✅ |
+| 1 | **方向修正**：從「單一 Elastic Sketch 多維度熵值」→「多 Sketch 協同框架」 | ✅ |
+| 2 | 重寫第一章緒論（draft/chapter1-introduction.md） — 問題從「單一熵值不夠」→「單一 Sketch 能力有限」 | ✅ |
+| 3 | 重寫第二章文獻探討（draft/chapter2-literature-review.md） — 新增 CM/UnivMon/UCL 四種 Sketch survey | ✅ |
+| 4 | 重寫第三章方法論（draft/chapter3-methodology.md） — 核心改為 17 維聯合特徵向量 + 消融設計 | ✅ |
+| 5 | 修正實驗設計（notes/16-experiment-design.md） — Baseline 改為單一 Sketch vs 不同組合消融 | ✅ |
+| 6 | 去 AI 味修飾（砍類比、改結尾、砍轉折詞） | ✅ |
 
 ### 下一步
 
@@ -109,8 +111,8 @@
 4. 🔗 收到教授文獻後整合兩批文獻，建立完整邏輯鏈
 5. 📝 ~~撰寫論文 Chapter 2（文獻回顧）~~ → ✅ 草稿完成（draft/）
 6. 📝 ~~撰寫論文 Chapter 1 + 3 + 實驗設計~~ → ✅ 草稿完成（2026-08-03）
-7. 🔬 開始實作階段：搭建 Mininet 環境 + Elastic Sketch 原型
-8. 👨‍🏫 與教授討論前三章草稿 + 實驗設計
+7. 🔬 開始實作階段：搭建 Mininet 環境 + 實作 CM/Elastic/UnivMon/UCL 四個 Sketch 原型
+8. 👨‍🏫 與教授討論修正後的方向（多 Sketch 協同框架） + 前三章草稿
 
 ---
 
