@@ -8,38 +8,42 @@
 |------|------|
 | **Mesh Network** | 網狀網路。每個節點同時是終端也是中繼，拓撲為 partial/full mesh，具自組網、自癒、多跳路由三特性 |
 | **Multi-hop Routing** | 多跳路由。封包經多個中間節點轉送到目的地，每跳增加延遲但延伸覆蓋範圍 |
-| **Self-Organizing Network (SON)** | 自組網。節點通電後自動發現鄰居、交換路由表、建立拓撲，無需人工設定 |
 | **Self-Healing** | 自癒。任一節點失效或鏈路中斷時，網路自動重新計算路由，繞開故障點 |
 | **Ad-hoc Network** | 隨建即連網路。無固定基礎設施，節點動態加入/離開，拓撲持續變化 |
 | **MANET** | Mobile Ad-hoc Network，移動中的 Ad-hoc 網路，詳見第三節 |
-| **Proactive Routing** | 主動式路由（如 OLSR）。定期廣播路由表，延遲低但 overhead 高 |
-| **Reactive Routing** | 反應式路由（如 AODV）。有通訊需求才找路，省頻寬但初始延遲高 |
-| **Throughput Degradation** | 吞吐量衰減。每多一跳，有效吞吐量約減半（同頻道收發共用），3 跳以上實用性銳減 |
 
 ---
 
 ## 二、現有 Mesh 系統
 
-### 2.1 戰術無線電
+### 2.1 戰術無線電 — TrellisWare TSM
 
-| 系統 | 國別 | 頻段 | 特點 |
-|------|:--:|------|------|
-| **AN/PRC-117G (Falcon III)** | 美 | 30 MHz – 2 GHz | 寬頻 MANET，SINCGARS 相容，自動中繼 |
-| **AN/PRC-163 (Falcon IV)** | 美 | HF/VHF/UHF | 雙通道同時語音+數據，TSM 波形，上傳至營級 |
-| **PR4G (Thales)** | 法 | VHF 30-88 MHz | 跳頻抗干擾，內建 2 跳中繼 |
-| **CNR-900 (R&S)** | 德 | VHF/UHF | IP-based MANET，最高 64 節點自組網 |
+**TrellisWare** 是美軍戰術 Mesh 通訊的核心技術供應商，其 **TSM（Tactical Scalable MANET）** 波形為 Nett Warrior 單兵系統的標準通訊層。
 
-**TSM (Tactical Scalable MANET) 波形** — TrellisWare 開發，美軍 Nett Warrior 標準波形，支援數百節點、每跳 <1ms 延遲、高抗干擾。
+| 項目 | 規格 |
+|------|------|
+| **開發商** | TrellisWare Technologies（美） |
+| **波形** | TSM（Tactical Scalable MANET） |
+| **頻段** | UHF 225-450 MHz / L-band 1.2-1.4 GHz |
+| **速率** | 窄頻模式 ~250 kbps，寬頻模式最高 **10 Mbps** |
+| **節點規模** | 單一 MANET 支援 **200+ 節點** |
+| **每跳延遲** | <1 ms |
+| **自癒時間** | <1 秒 |
+| **部署平台** | AN/PRC-163 (Falcon IV)、AN/PRC-117G (Falcon III) |
 
-### 2.2 Mesh Wi-Fi 系統
+**核心優勢**：同一波形同時承載語音、數據、位置、影片，所有節點自動中繼。失去任一節點不影響網路，自癒時間 <1 秒。已在伊拉克、阿富汗實戰驗證。
 
-| 系統 | 標準 | 特點 |
-|------|------|------|
-| **IEEE 802.11s** | WiFi Mesh 標準 | HWMP (Hybrid Wireless Mesh Protocol)，預設路由協定 |
-| **GoTenna** | 非 WiFi | VHF 151-154 MHz，點對點最遠 6-8 km，文字+GPS，無需基地台 |
-| **Silvus StreamCaster** | MIMO MANET | 軍用 COTS，400+ Mbps，Spectrum Dominance 波形 |
+### 2.2 Wi-Fi Mesh — IEEE 802.11s
 
-802.11s 核心採 HWMP：混合 AODV（on-demand）和 tree-based（proactive）路由，適應固定與移動節點混合場景。
+| 項目 | 說明 |
+|------|------|
+| **標準** | IEEE 802.11s（Wi-Fi Mesh 國際標準） |
+| **頻段** | 2.4 / 5 GHz |
+| **速率** | 視 802.11 世代，最高可達數百 Mbps |
+| **距離** | 單跳 100-300m（室內更短） |
+| **路由協議** | HWMP（Hybrid Wireless Mesh Protocol） |
+
+**HWMP** 混合 AODV（on-demand）和 tree-based（proactive）兩種模式，適應固定與移動節點混合場景。適合前進基地或固守陣地內部的高頻寬覆蓋，但不適合長距離或高機動場景。
 
 ### 2.3 Meshtastic
 
@@ -53,14 +57,16 @@
 
 Meshtastic 的軍事價值不在直接採用，而在證明了 **LoRa PHY + Mesh topology = 極低成本的大範圍文字通訊網**。缺點是 flooding 路由在大規模時頻譜效率極差。
 
-### 2.4 其他路由協議
+### 2.4 其他 Mesh 相關系統與協議
 
-| 系統 | 類型 | 要點 |
+| 系統 | 類型 | 用途 |
 |------|------|------|
-| **Zigbee** | IoT Mesh | 802.15.4，低功耗，Zigbee PRO 支援多跳 |
-| **Thread** | IoT Mesh | Google/Nest 主導，6LoWPAN，每個裝置都是 router |
-| **B.A.T.M.A.N.** | 路由協議 | Better Approach To Mobile Ad-hoc Networking，Linux kernel 內建 |
-| **OLSR / OLSRv2** | 路由協議 | Optimized Link State Routing，MANET proactive 標準，RFC 7181 |
+| **GoTenna** | 消費級戰術通訊 | VHF 151-154 MHz，手機藍牙連線，文字+GPS，點對點 6-8 km，特戰或山區無基地台場景 |
+| **Silvus StreamCaster** | 軍用 COTS MANET | MIMO 波形，400+ Mbps，用於 ISR 影片回傳等高頻寬戰術需求 |
+| **Zigbee** | IoT Mesh | 802.15.4 低功耗，智慧家庭/工業感測器，Zigbee PRO 支援多跳 |
+| **Thread** | IoT Mesh | Google/Nest 主導，6LoWPAN，每個裝置都是 router，用於智慧家庭骨幹 |
+| **B.A.T.M.A.N.** | 路由協議 | Linux kernel 內建，開源社群 Mesh 網路（Freifunk）使用，適合固定式社區網路 |
+| **OLSR / OLSRv2** | 路由協議 | MANET 主動式路由標準（RFC 7181），適合節點數 10-50 的中小規模戰術網路 |
 
 ---
 
@@ -95,38 +101,19 @@ Meshtastic 的軍事價值不在直接採用，而在證明了 **LoRa PHY + Mesh
 
 ## 四、作戰運用
 
-### 4.1 戰術通訊層級對應
+### 4.1 戰術層級 × 硬體 × 場景對應
 
-| 層級 | 通訊需求 | Mesh/MANET 角色 |
-|------|---------|----------------|
-| **班/排級** | 語音 + 位置（< 2 km） | 單兵無線電 Mesh，每員一個節點，自動中繼 |
-| **連級** | 語音 + 數據 + 影片（< 10 km） | MANET 車載台，移動中保持連通 |
-| **營級** | 態勢圖 + 火力協調（< 40 km） | Mesh 骨幹 + SATCOM 上行 |
-| **旅級以上** | 大量數據 + 跨軍種 | Mesh 退為接取層，主幹走 SATCOM/光纖 |
+| 層級 | 通訊需求 | 推薦硬體 | 適用場景 |
+|------|---------|---------|---------|
+| **班/排級** | 語音 + 位置（< 2 km） | AN/PRC-163（TSM 波形） | 城鎮戰：每員一個節點，建築物內多跳繞障礙，自動中繼 |
+| **連級** | 語音 + 數據 + 影片（< 10 km） | AN/PRC-163 車載台 + UAV 中繼 | 機動突擊：車隊 >40 km/h 移動中保持 MANET，脫隊自動重組 |
+| **營級** | 態勢圖 + 火力協調（< 40 km） | AN/PRC-163 + SATCOM 上行 | 營指揮所：Mesh 骨幹內部通聯，SATCOM 往上回報 |
+| **特戰滲透** | 文字 + GPS（< 8 km） | goTenna | 小隊深入敵後：低功率難偵測，無需基地台，文字+位置夠用 |
+| **前進基地** | 高頻寬內部通訊（< 300m） | OpenWrt + 802.11s | 固守陣地：$50 一顆可拋棄式，VoIP + 影片監控，被炸不心疼 |
+| **戰場感測器網** | 低速率回傳（3-8 km 單跳） | Heltec LoRa32 V3 | 沿補給線佈放：震動/磁力感測，車輛經過自動回傳，太陽能供電 |
+| **旅級以上** | 大量數據 + 跨軍種 | Mesh 退為接取層 | 主幹走 SATCOM/光纖，Mesh 僅負責最後一哩 |
 
-### 4.2 可用的 Mesh 硬體（非傳統無線電）
-
-| 類型 | 代表硬體 | 頻段/距離 | 軍事價值 |
-|------|---------|----------|---------|
-| **軍用無線電** | AN/PRC-163 (Falcon IV) | HF/VHF/UHF, 數 km | TSM 波形，數百節點 MANET，語音+數據，已實戰驗證 |
-| **SDR** | Ettus USRP B210 | 70 MHz – 6 GHz, 視功率 | 自訂波形，同一硬體白天通訊、夜間切 SIGINT |
-| **Wi-Fi 改裝** | OpenWrt + 802.11s | 2.4/5 GHz, 100-300m | $50 一顆，可拋棄式，固守陣地內部高頻寬覆蓋 |
-| **LoRa 節點** | Heltec LoRa32 V3 | 868/915 MHz, 3-8 km | $30 一顆，文字+GPS，感測器網，佈了不管 |
-| **手機** | goTenna | VHF 151-154 MHz, 6-8 km | 藍牙連手機，無需基地台，文字+GPS，特戰適用 |
-| **UAV 中繼** | 繫留無人機 + Wi-Fi AP | 50-100m 高度 | 24h 不間斷，補地形遮擋，2D Mesh 變 3D |
-
-### 4.3 作戰場景 × 硬體對應
-
-| 場景 | 用什麼 | 為什麼 |
-|------|--------|--------|
-| **城鎮戰** | AN/PRC-163 + UAV 中繼 | 建築遮擋衛星，多跳繞障礙，空中有節點補死角 |
-| **機動突擊** | AN/PRC-163（車載） | 車隊 >40 km/h 移動中 MANET，脫隊自動重組 |
-| **特戰滲透** | goTenna | 低功率不易被偵測，文字+GPS 夠用，無需攜帶大型無線電 |
-| **前進基地** | OpenWrt 802.11s | 便宜高頻寬，內部 VoIP + 影片，被炸不心疼 |
-| **戰場感測器網** | LoRa32 V3 | 空投 50 顆沿補給線，車輛經過震動自動回傳，太陽能供電 |
-| **反登陸/灘岸** | 全部混合 | 第一線預置 LoRa 感測器，二線 OpenWrt 固守，UAV 補地形，無線電保語音 |
-
-### 4.4 美軍 Nett Warrior 案例
+### 4.2 美軍 Nett Warrior 案例
 
 Nett Warrior 是美軍現役單兵系統，核心通訊層使用 TrellisWare TSM 波形：
 
@@ -134,15 +121,6 @@ Nett Warrior 是美軍現役單兵系統，核心通訊層使用 TrellisWare TSM
 - 班長終端顯示全隊即時位置（無 GPS 時靠慣性導航 + Mesh 相對定位）
 - 語音走 mesh 中繼，不需排級中繼台
 - 失去任何 1-2 員不影響網路，自癒時間 <1 秒
-
-### 4.5 反制作為考量
-
-| 優勢 | 弱點 |
-|------|------|
-| 分散式架構，無單點失效 | Routing overhead 本身就是 RF 指紋 |
-| 跳頻展頻抗窄頻干擾 | 全頻段攔截式干擾仍有效 |
-| 多跳可降低每跳發射功率，不易被偵測 | 節點密度不足時（<3 鄰居），Mesh 退化為星狀 |
-| 自癒繞路對抗局部干擾 | 黑洞攻擊可系統性破壞路由 |
 
 ---
 
